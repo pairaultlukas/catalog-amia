@@ -1,5 +1,18 @@
 <meta charset="utf-8">
-<title>AMIA · Catalog fișe tehnice </title>
+<title>AMIA · Catalog fișe tehnice (Hornbach)</title>
+<meta name="description" content="Descoperă peste 225 de plante, arbuști, flori și mediteraneene AMIA. Fișe tehnice complete, trilingv RO/EN/FR.">
+<meta name="theme-color" content="#006830">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pairaultlukas.github.io/catalog-amia/">
+<meta property="og:title" content="AMIA – Catalog Plante 🌿">
+<meta property="og:description" content="225+ plante, arbuști, flori și mediteraneene. Fișe tehnice complete, trilingv RO/EN/FR. Grădinărim cu pasiune!">
+<meta property="og:image" content="https://pairaultlukas.github.io/catalog-amia/preview.png">
+<meta property="og:site_name" content="AMIA – Grădinărim cu pasiune!">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AMIA – Catalog Plante 🌿">
+<meta name="twitter:description" content="225+ plante, arbuști, flori și mediteraneene. Fișe tehnice complete, trilingv RO/EN/FR.">
+<meta name="twitter:image" content="https://pairaultlukas.github.io/catalog-amia/preview.png">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Mulish:wght@400;500;600;700&display=swap');
 :root{--green:#006830;--green-d:#00502a;--leaf:#58A848;--leaf-l:#EAF3E6;--leaf-ll:#F4F9F1;
@@ -170,21 +183,21 @@ table.kv tr:last-child td{border-bottom:0}
 .cmptable td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
 .cmptable td.h{background:var(--leaf-ll);font-family:'Poppins';font-weight:600;width:160px;color:var(--green-d)}
 .cmpimg{margin-bottom:6px}.cmpimg img{width:100%;height:100%;object-fit:cover}.cmpimg svg{width:100%;height:100%}
+/* ---- one fișă per A4 page (print + offscreen measuring) ---- */
 #printlist{display:none}
+#printlist.measuring{display:block;position:fixed;left:-99999px;top:0;z-index:-1}
+#printlist .page{width:210mm;height:297mm;box-sizing:border-box;padding:6mm;overflow:hidden;background:#fff}
+#printlist .pagein{width:100%;height:100%;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+#printlist .pagefit{transform-origin:top center}
+#printlist .pagefit .sheet{width:980px;box-shadow:none;border:0}
 @media print{
- body{background:#fff}
- .bar,.tools,.panel,.hero-intro,.grid,.modal .close,.modal .printbtn{display:none!important}
- /* single fișă (overlay) */
- body:not(.printing-list) .overlay{position:static;background:#fff;padding:0;display:block!important}
- body:not(.printing-list) .modal{width:100%;max-width:100%}
- .sheet{box-shadow:none;border:0;border-radius:0}
- /* selected-list PDF */
- body.printing-list .overlay,body.printing-list #cmpoverlay{display:none!important}
+ @page{size:A4 portrait;margin:0}
+ body.printing-list .bar,body.printing-list .tools,body.printing-list .panel,body.printing-list .hero-intro,body.printing-list .grid,body.printing-list .overlay,body.printing-list #cmpoverlay{display:none!important}
  body.printing-list #printlist{display:block!important}
- body.printing-list #printlist .sheet{page-break-after:always;margin:0}
- @page{size:A4 portrait;margin:8mm}
+ #printlist .page{page-break-after:always;break-after:page}
+ #printlist .page:last-child{page-break-after:auto;break-after:auto}
 }
-@media(max-width:1040px){.hero{grid-template-columns:1fr}.strip{grid-template-columns:repeat(5,1fr)}.cols3,.cols4{grid-template-columns:1fr}.hdr nav{display:none}.compsec{grid-template-columns:1fr}}
+@media screen and (max-width:1040px){.hero{grid-template-columns:1fr}.strip{grid-template-columns:repeat(5,1fr)}.cols3,.cols4{grid-template-columns:1fr}.hdr nav{display:none}.compsec{grid-template-columns:1fr}}
 </style>
 
 <div class="bar">
@@ -207,7 +220,7 @@ table.kv tr:last-child td{border-bottom:0}
 
 <div class="overlay" id="overlay">
   <div class="modal">
-    <button class="printbtn" id="printbtn" onclick="window.print()">⬇︎ PDF</button>
+    <button class="printbtn" id="printbtn" onclick="printCurrent()">⬇︎ PDF</button>
     <button class="close" onclick="closeDetail()" aria-label="x">✕</button>
     <div id="detail"></div>
   </div>
@@ -2941,14 +2954,26 @@ function buildList(){const t=tr();const el=document.getElementById('panel-list')
   (items.length?`<div class="listwrap">${items.map(i=>`<div class="listitem"><b>${pname(P[i],LANG)}</b> <span style="color:var(--muted);font-size:12px">${P[i].all_cods.join(', ')}</span><span class="x" onclick="toggleList(${i})">✕</span></div>`).join('')}</div>
    <button class="listpdf" onclick="downloadList()">⬇︎ ${t.listPdf}</button>`
    :`<p style="color:var(--muted);font-size:13px;margin:0">${t.listEmpty}</p>`);}
-function downloadList(){const items=[...mylist];if(!items.length)return;
- document.getElementById('printlist').innerHTML=items.map(i=>sheetHTML(P[i])).join('');
- document.body.classList.add('printing-list');
- // load photos into printlist then print
- const phs=document.querySelectorAll('#printlist .hero-img[data-photo]');let pending=phs.length;
- if(!pending){window.print();document.body.classList.remove('printing-list');return;}
- phs.forEach((el,idx)=>{applyPhoto(el,P[items[idx]]);});
- setTimeout(()=>{window.print();document.body.classList.remove('printing-list');},1500);}
+function downloadList(){printSheets([...mylist]);}
+function printCurrent(){if(overlay.dataset.i!=null&&overlay.dataset.i!=='')printSheets([+overlay.dataset.i]);}
+function printSheets(indices){if(!indices.length)return;
+ const pl=document.getElementById('printlist');
+ pl.innerHTML=indices.map(i=>`<div class="page"><div class="pagein"><div class="pagefit">${sheetHTML(P[i])}</div></div></div>`).join('');
+ pl.classList.add('measuring');
+ pl.querySelectorAll('.hero-img[data-photo]').forEach((el,idx)=>applyPhoto(el,P[indices[idx]]));
+ setTimeout(()=>{
+   pl.querySelectorAll('.page').forEach(page=>{
+     const pagein=page.querySelector('.pagein'),fit=page.querySelector('.pagefit'),sheet=fit.firstElementChild;
+     const uw=pagein.clientWidth,uh=pagein.clientHeight;
+     const sw=sheet.offsetWidth||980,sh=sheet.offsetHeight||1;
+     const s=Math.min(uw/sw,uh/sh,1);
+     fit.style.transform='scale('+s+')';
+   });
+   pl.classList.remove('measuring');
+   document.body.classList.add('printing-list');
+   window.print();
+   setTimeout(()=>document.body.classList.remove('printing-list'),400);
+ },1600);}
 /* ---- calculator ---- */
 function buildCalc(){const t=tr();const el=document.getElementById('panel-calc');
  el.innerHTML=`<div class="ptitle">${t.calcTitle}</div>
